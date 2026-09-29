@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
 @Configuration
-@PropertySource(".env")
+@PropertySource(value = "classpath:.env", ignoreResourceNotFound = false)
 public class AppConfig {
 
     @Value("${DB_URL}")
@@ -27,10 +27,10 @@ public class AppConfig {
     private String jwtSecretKey;
 
     @Value("${JWT_EXPIRATION:3600}")
-    private String jwtAccessTokenTime;
+    private Long jwtAccessTokenTime;
 
     @Value("${JWT_REFRESH_TOKEN_TIME:604800}")
-    private String jwtRefreshTokenTime;
+    private Long jwtRefreshTokenTime;
 
     public String getDatabaseUrl() {
         return databaseUrl;
@@ -56,11 +56,11 @@ public class AppConfig {
         return jwtSecretKey;
     }
 
-    public String getJwtAccessTokenTime() {
+    public Long getJwtAccessTokenTime() {
         return jwtAccessTokenTime;
     }
 
-    public String getJwtRefreshTokenTime() {
+    public Long getJwtRefreshTokenTime() {
         return jwtRefreshTokenTime;
     }
 }
