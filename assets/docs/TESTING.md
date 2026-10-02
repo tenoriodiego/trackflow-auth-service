@@ -175,6 +175,52 @@ ROLE_CUSTOMER
 
 Também é verificado que a role atribuída ao usuário corresponde à role retornada pelo `RoleRepository`.
 
+## 4.7 UserControllerTest
+
+Arquivo:
+
+`src/test/java/br/com/trackflow/auth/user/controller/UserControllerTest.java`
+
+Atualmente foram implementados 3 cenários de teste.
+
+### 4.7.1 Cadastro de usuário
+
+`shouldRegisterUserSuccessfully`
+
+Valida o cadastro de um usuário através do endpoint:
+
+`POST /api/users`
+
+Resultado esperado:
+
+- HTTP `201 Created`
+- Retorno dos dados do usuário
+- Chamada do `UserService`
+
+### 4.7.2 Requisição inválida
+
+`shouldReturnBadRequestWhenRequestIsInvalid`
+
+Valida o comportamento quando os dados enviados não atendem às validações do `RegisterRequest`.
+
+Resultado esperado:
+
+- HTTP `400 Bad Request`
+- Mensagens de validação retornadas
+- `UserService` não é chamado
+
+### 4.7.3 E-mail já cadastrado
+
+`shouldReturnConflictWhenEmailAlreadyExists`
+
+Simula uma tentativa de cadastro utilizando um e-mail já existente.
+
+Resultado esperado:
+
+- HTTP `409 Conflict`
+- Mensagem de erro retornada
+- `UserService` é chamado
+
 ---
 
 # 5. 📊 Cenários testados
@@ -266,48 +312,47 @@ Linux/macOS:
 
 # 8. 📈 Status atual
 
-Atualmente o projeto possui:
+### UserServiceTest
 
-```text
-UserServiceTest
 ├── ✅ Cadastro de usuário
 ├── ✅ E-mail duplicado
 ├── ✅ Role inexistente
 ├── ✅ Criptografia da senha
 ├── ✅ Normalização do e-mail
 └── ✅ Atribuição da ROLE_CUSTOMER
-```
 
-Resultado atual:
+**6 testes, 6 aprovados, 0 falhas.**
 
-```text
-6 testes
-6 aprovados
-0 falhas
-```
+### UserControllerTest
+
+├── ✅ Cadastro de usuário
+├── ✅ Requisição inválida
+└── ✅ E-mail já cadastrado
+
+**3 testes, 3 aprovados, 0 falhas.**
+
+### Total
+
+**9 testes, 9 aprovados, 0 falhas.**
 
 ---
 
 # 9. 🗺️ Roadmap de testes
 
-A suíte de testes será expandida conforme novas funcionalidades forem implementadas.
+# 9. 🗺️ Roadmap de testes
+
+[x] UserServiceTest
+[x] UserControllerTest
+[ ] AuthenticationServiceTest
+[ ] JwtServiceTest
+[ ] Security Tests
+[ ] Repository Tests
+[ ] Integration Tests
+[ ] Test Coverage / JaCoCo
 
 ### Próximas etapas
 
 ```text
-[x] UserServiceTest
-    [x] Cadastro
-    [x] E-mail duplicado
-    [x] Role inexistente
-    [x] Criptografia da senha
-    [x] Normalização do e-mail
-    [x] Atribuição da ROLE_CUSTOMER
-
-[ ] UserControllerTest
-    [ ] Cadastro com sucesso
-    [ ] Validação de dados
-    [ ] E-mail duplicado
-    [ ] Respostas HTTP
 
 [ ] AuthenticationServiceTest
     [ ] Login
@@ -352,5 +397,10 @@ A estratégia de testes do TrackFlow busca priorizar:
 - Cobertura de cenários de sucesso e erro
 - Validação do comportamento, não apenas da implementação
 - Feedback rápido durante o desenvolvimento
+- Testes unitários do `UserService`
+- Testes do `UserController` com MockMvc
+- Validação das requisições HTTP
+- Validação dos códigos de status HTTP
+- Tratamento de exceções no controller
 
 A suíte de testes será evoluída junto com o projeto, evitando a criação de testes artificiais apenas para aumentar métricas de cobertura.
