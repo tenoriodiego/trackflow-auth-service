@@ -1,5 +1,7 @@
 package br.com.trackflow.auth.authentication.dto;
 
-public class LoginResponse {
-
+public record LoginResponse(
+        String accessToken,
+        String refreshToken,
+        String tokenType) {
 }
