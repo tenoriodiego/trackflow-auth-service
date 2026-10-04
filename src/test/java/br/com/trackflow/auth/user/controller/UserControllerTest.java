@@ -17,6 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import br.com.trackflow.auth.authentication.service.JwtService;
 import br.com.trackflow.auth.shared.exception.EmailAlreadyExistsException;
 import br.com.trackflow.auth.user.dto.RegisterRequest;
 import br.com.trackflow.auth.user.dto.UserResponse;
@@ -29,10 +30,13 @@ class UserControllerTest {
         @Autowired
         private MockMvc mockMvc;
 
-        private final ObjectMapper objectMapper = new ObjectMapper();
-
         @MockitoBean
         private UserService userService;
+
+        @MockitoBean
+        private JwtService jwtService;
+
+        private final ObjectMapper objectMapper = new ObjectMapper();
 
         @Test
         void shouldRegisterUserSuccessfully() throws Exception {

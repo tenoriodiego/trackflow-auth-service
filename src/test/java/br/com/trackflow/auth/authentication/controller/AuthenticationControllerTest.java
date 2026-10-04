@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -19,80 +18,80 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import br.com.trackflow.auth.authentication.dto.LoginRequest;
 import br.com.trackflow.auth.authentication.dto.LoginResponse;
 import br.com.trackflow.auth.authentication.service.AuthenticationService;
+import br.com.trackflow.auth.authentication.service.JwtService;
 
 @WebMvcTest(AuthenticationController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AuthenticationControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+        @Autowired
+        private MockMvc mockMvc;
 
-    @MockitoBean
-    private AuthenticationService authenticationService;
+        @MockitoBean
+        private AuthenticationService authenticationService;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+        @MockitoBean
+        private JwtService jwtService;
 
-    @Test
-    void shouldLoginSuccessfully() throws Exception {
+        private final ObjectMapper objectMapper = new ObjectMapper();
 
-        LoginRequest request = new LoginRequest(
-                "diego@trackflow.com",
-                "12345678");
+        @Test
+        void shouldLoginSuccessfully() throws Exception {
 
-        LoginResponse response = new LoginResponse(
-                "jwt-token",
-                null,
-                "Bearer");
+                LoginRequest request = new LoginRequest(
+                                "diego@trackflow.com",
+                                "12345678");
 
-        when(authenticationService.login(any(LoginRequest.class)))
-                .thenReturn(response);
+                LoginResponse response = new LoginResponse(
+                                "jwt-token",
+                                null,
+                                "Bearer");
 
-        mockMvc.perform(
-                post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                                objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken")
-                        .value("jwt-token"))
-                .andExpect(jsonPath("$.tokenType")
-                        .value("Bearer"));
-    }
+                when(authenticationService.login(any(LoginRequest.class)))
+                                .thenReturn(response);
 
-    @Test
-    void shouldReturnBadRequestWhenRequestIsInvalid()
-            throws Exception {
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.accessToken")
+                                                .value("jwt-token"))
+                                .andExpect(jsonPath("$.tokenType")
+                                                .value("Bearer"));
+        }
 
-        LoginRequest request = new LoginRequest("", "");
+        @Test
+        void shouldReturnBadRequestWhenRequestIsInvalid()
+                        throws Exception {
 
-        mockMvc.perform(
-                post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                                objectMapper.writeValueAsString(request)))
-                .andExpect(status().isBadRequest());
-    }
+                LoginRequest request = new LoginRequest("", "");
 
-    @Test
-    void shouldReturnUnauthorizedWhenCredentialsAreInvalid()
-            throws Exception {
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isBadRequest());
+        }
 
-        LoginRequest request = new LoginRequest(
-                "diego@trackflow.com",
-                "senha-incorreta");
+        @Test
+        void shouldReturnUnauthorizedWhenCredentialsAreInvalid()
+                        throws Exception {
 
-        when(authenticationService.login(any(LoginRequest.class)))
-                .thenThrow(
-                        new BadCredentialsException(
-                                "Bad credentials"));
+                LoginRequest request = new LoginRequest(
+                                "diego@trackflow.com",
+                                "senha-incorreta");
 
-        mockMvc.perform(
-                post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(
-                                objectMapper.writeValueAsString(request)))
-                .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message")
-                        .value("E-mail ou senha inválidos."));
-    }
+                when(authenticationService.login(any(LoginRequest.class)))
+                                .thenThrow(new org.springframework.security.authentication.BadCredentialsException(
+                                                "Bad credentials"));
+
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                                .contentType(MediaType.APPLICATION_JSON)
+                                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isUnauthorized())
+                                .andExpect(jsonPath("$.message")
+                                                .value("E-mail ou senha inválidos."));
+        }
 }
