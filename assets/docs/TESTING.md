@@ -337,18 +337,21 @@ Linux/macOS:
 
 ---
 
-# 9. 🗺️ Roadmap de testes
 
 # 9. 🗺️ Roadmap de testes
 
-[x] UserServiceTest
-[x] UserControllerTest
-[ ] AuthenticationServiceTest
-[ ] JwtServiceTest
-[ ] Security Tests
-[ ] Repository Tests
-[ ] Integration Tests
-[ ] Test Coverage / JaCoCo
+- [x] UserServiceTest
+- [x] UserControllerTest
+- [x] CustomUserDetailsServiceTest
+- [x] AuthenticationManagerTest
+- [x] AuthenticationServiceTest
+- [x] JwtServiceTest
+- [x] AuthenticationControllerTest
+- [x] JwtAuthenticationFilterTest
+- [ ] Security Integration Tests
+- [ ] Repository Tests
+- [ ] Integration Tests
+- [ ] Test Coverage / JaCoCo
 
 ### Próximas etapas
 
