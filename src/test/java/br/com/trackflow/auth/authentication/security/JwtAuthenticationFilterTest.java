@@ -1,126 +1,187 @@
 package br.com.trackflow.auth.authentication.security;
 
+import java.io.IOException;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import static org.mockito.Mockito.mock;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 
 import br.com.trackflow.auth.authentication.service.JwtService;
 import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 
+@ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
 
-    private JwtService jwtService;
-    private UserDetailsService userDetailsService;
-    private JwtAuthenticationFilter filter;
+        @Mock
+        private JwtService jwtService;
 
-    private FilterChain filterChain;
+        @Mock
+        private UserDetailsService userDetailsService;
 
-    @BeforeEach
-    void setUp() {
+        @Mock
+        private FilterChain filterChain;
 
-        jwtService = mock(JwtService.class);
-        userDetailsService = mock(UserDetailsService.class);
+        private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-        filter = new JwtAuthenticationFilter(
-                jwtService,
-                userDetailsService);
+        @BeforeEach
+        void setUp() {
+                jwtAuthenticationFilter = new JwtAuthenticationFilter(
+                                jwtService,
+                                userDetailsService);
 
-        filterChain = mock(FilterChain.class);
-    }
+                SecurityContextHolder.clearContext();
+        }
 
-    @Test
-    void shouldContinueChainWhenAuthorizationHeaderIsMissing()
-            throws Exception {
+        @Test
+        void shouldAuthenticateUserWhenTokenIsValid()
+                        throws ServletException, IOException {
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
+                String token = "valid-jwt-token";
+                String email = "diego@trackflow.com";
 
-        MockHttpServletResponse response = new MockHttpServletResponse();
+                UserDetails userDetails = User
+                                .withUsername(email)
+                                .password("encoded-password")
+                                .authorities("ROLE_CUSTOMER")
+                                .build();
 
-        filter.doFilter(
-                request,
-                response,
-                filterChain);
+                when(jwtService.isTokenValid(token))
+                                .thenReturn(true);
 
-        verify(filterChain)
-                .doFilter(request, response);
+                when(jwtService.extractUsername(token))
+                                .thenReturn(email);
 
-        verifyNoInteractions(jwtService);
-        verifyNoInteractions(userDetailsService);
-    }
+                when(userDetailsService.loadUserByUsername(email))
+                                .thenReturn(userDetails);
 
-    @Test
-    void shouldContinueChainWhenTokenIsInvalid()
-            throws Exception {
+                MockHttpServletRequest request = new MockHttpServletRequest();
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
+                request.addHeader(
+                                "Authorization",
+                                "Bearer " + token);
 
-        request.addHeader(
-                "Authorization",
-                "Bearer invalid-token");
+                MockHttpServletResponse response = new MockHttpServletResponse();
 
-        MockHttpServletResponse response = new MockHttpServletResponse();
+                jwtAuthenticationFilter.doFilter(
+                                request,
+                                response,
+                                filterChain);
 
-        when(jwtService.isTokenValid("invalid-token"))
-                .thenReturn(false);
+                Authentication authentication = SecurityContextHolder
+                                .getContext()
+                                .getAuthentication();
 
-        filter.doFilter(
-                request,
-                response,
-                filterChain);
+                assertThat(authentication).isNotNull();
+                assertThat(authentication.getName())
+                                .isEqualTo(email);
+                assertThat(authentication.getAuthorities())
+                                .extracting(authority -> authority.getAuthority())
+                                .containsExactly("ROLE_CUSTOMER");
 
-        verify(filterChain)
-                .doFilter(request, response);
+                verify(jwtService).isTokenValid(token);
+                verify(jwtService).extractUsername(token);
+                verify(userDetailsService)
+                                .loadUserByUsername(email);
 
-        verify(jwtService)
-                .isTokenValid("invalid-token");
+                verify(filterChain)
+                                .doFilter(request, response);
+        }
 
-        verifyNoInteractions(userDetailsService);
-    }
+        @Test
+        void shouldContinueFilterChainWhenAuthorizationHeaderIsMissing()
+                        throws ServletException, IOException {
 
-    @Test
-    void shouldAuthenticateUserWhenTokenIsValid()
-            throws Exception {
+                MockHttpServletRequest request = new MockHttpServletRequest();
 
-        MockHttpServletRequest request = new MockHttpServletRequest();
+                MockHttpServletResponse response = new MockHttpServletResponse();
 
-        request.addHeader(
-                "Authorization",
-                "Bearer valid-token");
+                jwtAuthenticationFilter.doFilter(
+                                request,
+                                response,
+                                filterChain);
 
-        MockHttpServletResponse response = new MockHttpServletResponse();
+                assertThat(
+                                SecurityContextHolder
+                                                .getContext()
+                                                .getAuthentication())
+                                .isNull();
 
-        UserDetails userDetails = User.withUsername("diego@trackflow.com")
-                .password("password")
-                .authorities("ROLE_CUSTOMER")
-                .build();
+                verify(filterChain)
+                                .doFilter(request, response);
+        }
 
-        when(jwtService.isTokenValid("valid-token"))
-                .thenReturn(true);
+        @Test
+        void shouldContinueFilterChainWhenAuthorizationHeaderIsInvalid()
+                        throws ServletException, IOException {
 
-        when(jwtService.extractUsername("valid-token"))
-                .thenReturn("diego@trackflow.com");
+                MockHttpServletRequest request = new MockHttpServletRequest();
 
-        when(userDetailsService.loadUserByUsername(
-                "diego@trackflow.com")).thenReturn(userDetails);
+                request.addHeader(
+                                "Authorization",
+                                "Basic some-token");
 
-        filter.doFilter(
-                request,
-                response,
-                filterChain);
+                MockHttpServletResponse response = new MockHttpServletResponse();
 
-        verify(userDetailsService)
-                .loadUserByUsername(
-                        "diego@trackflow.com");
+                jwtAuthenticationFilter.doFilter(
+                                request,
+                                response,
+                                filterChain);
 
-        verify(filterChain)
-                .doFilter(request, response);
-    }
+                assertThat(
+                                SecurityContextHolder
+                                                .getContext()
+                                                .getAuthentication())
+                                .isNull();
+
+                verify(filterChain)
+                                .doFilter(request, response);
+        }
+
+        @Test
+        void shouldContinueFilterChainWhenTokenIsInvalid()
+                        throws ServletException, IOException {
+
+                String token = "invalid-jwt-token";
+
+                when(jwtService.isTokenValid(token))
+                                .thenReturn(false);
+
+                MockHttpServletRequest request = new MockHttpServletRequest();
+
+                request.addHeader(
+                                "Authorization",
+                                "Bearer " + token);
+
+                MockHttpServletResponse response = new MockHttpServletResponse();
+
+                jwtAuthenticationFilter.doFilter(
+                                request,
+                                response,
+                                filterChain);
+
+                assertThat(
+                                SecurityContextHolder
+                                                .getContext()
+                                                .getAuthentication())
+                                .isNull();
+
+                verify(jwtService)
+                                .isTokenValid(token);
+
+                verify(filterChain)
+                                .doFilter(request, response);
+        }
 }

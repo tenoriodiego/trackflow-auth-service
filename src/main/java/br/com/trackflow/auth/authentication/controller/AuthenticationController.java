@@ -1,17 +1,16 @@
 package br.com.trackflow.auth.authentication.controller;
 
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 import br.com.trackflow.auth.authentication.dto.LoginRequest;
 import br.com.trackflow.auth.authentication.dto.LoginResponse;
 import br.com.trackflow.auth.authentication.service.AuthenticationService;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import br.com.trackflow.auth.user.dto.AuthenticatedUserResponse;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -30,7 +29,12 @@ public class AuthenticationController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<String> me() {
-        return ResponseEntity.ok("Usuário autenticado");
+    public ResponseEntity<AuthenticatedUserResponse> me(
+            Authentication authentication) {
+
+        AuthenticatedUserResponse response = authenticationService.getAuthenticatedUser(
+                authentication.getName());
+
+        return ResponseEntity.ok(response);
     }
 }
