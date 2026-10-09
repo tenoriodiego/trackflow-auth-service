@@ -1,7 +1,5 @@
 package br.com.trackflow.auth.authentication.security;
 
-import jakarta.servlet.http.HttpServletResponse;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -10,6 +8,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 public class SecurityConfig {
@@ -40,11 +40,10 @@ public class SecurityConfig {
                                                 .anyRequest().authenticated())
 
                                 .exceptionHandling(exception -> exception
-                                                .authenticationEntryPoint(
-                                                                (request, response, authException) -> response
-                                                                                .sendError(
-                                                                                                HttpServletResponse.SC_UNAUTHORIZED,
-                                                                                                "Unauthorized")))
+                                                .authenticationEntryPoint((request, response, authException) -> response
+                                                                .sendError(
+                                                                                HttpServletResponse.SC_UNAUTHORIZED,
+                                                                                "Unauthorized")))
 
                                 .addFilterBefore(
                                                 jwtAuthenticationFilter,

@@ -1,12 +1,9 @@
 package br.com.trackflow.auth.authentication.security;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -16,6 +13,8 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import br.com.trackflow.auth.authentication.service.AuthenticationService;
 import br.com.trackflow.auth.authentication.service.JwtService;
@@ -62,9 +61,7 @@ class SecurityIntegrationTest {
         }
 
         @Test
-        void shouldAllowAccessWhenTokenIsValid()
-                        throws Exception {
-
+        void shouldAllowAccessWhenTokenIsValid() throws Exception {
                 String token = "valid-token";
                 String email = "diego@trackflow.com";
 
@@ -73,12 +70,8 @@ class SecurityIntegrationTest {
                                 .authorities("ROLE_CUSTOMER")
                                 .build();
 
-                when(jwtService.isTokenValid(token))
-                                .thenReturn(true);
-
-                when(jwtService.extractUsername(token))
-                                .thenReturn(email);
-
+                when(jwtService.isTokenValid(token)).thenReturn(true);
+                when(jwtService.extractUsername(token)).thenReturn(email);
                 when(userDetailsService.loadUserByUsername(email))
                                 .thenReturn(userDetails);
 
@@ -95,5 +88,6 @@ class SecurityIntegrationTest {
                                                 .header("Authorization", "Bearer " + token)
                                                 .contentType(MediaType.APPLICATION_JSON))
                                 .andExpect(status().isOk());
+
         }
 }
