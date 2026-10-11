@@ -1,3 +1,4 @@
+
 package br.com.trackflow.auth.authentication.security;
 
 import org.springframework.context.annotation.Bean;
@@ -27,8 +28,8 @@ public class SecurityConfig {
                 http
                                 .csrf(csrf -> csrf.disable())
 
-                                .sessionManagement(session -> session.sessionCreationPolicy(
-                                                SessionCreationPolicy.STATELESS))
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
@@ -40,10 +41,11 @@ public class SecurityConfig {
                                                 .anyRequest().authenticated())
 
                                 .exceptionHandling(exception -> exception
-                                                .authenticationEntryPoint((request, response, authException) -> response
-                                                                .sendError(
-                                                                                HttpServletResponse.SC_UNAUTHORIZED,
-                                                                                "Unauthorized")))
+                                                .authenticationEntryPoint((request, response, authException) -> {
+                                                        response.sendError(
+                                                                        HttpServletResponse.SC_UNAUTHORIZED,
+                                                                        "Unauthorized");
+                                                }))
 
                                 .addFilterBefore(
                                                 jwtAuthenticationFilter,
