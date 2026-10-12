@@ -17,38 +17,38 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthenticationService {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
-    private final UserRepository userRepository;
+        private final AuthenticationManager authenticationManager;
+        private final JwtService jwtService;
+        private final UserRepository userRepository;
 
-    public LoginResponse login(LoginRequest request) {
+        public LoginResponse login(LoginRequest request) {
 
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.email(),
-                        request.password()));
+                authenticationManager.authenticate(
+                                new UsernamePasswordAuthenticationToken(
+                                                request.email(),
+                                                request.password()));
 
-        String accessToken = jwtService.generateAccessToken(request.email());
+                String accessToken = jwtService.generateAccessToken(request.email());
 
-        return new LoginResponse(
-                accessToken,
-                null,
-                "Bearer");
-    }
+                return new LoginResponse(
+                                accessToken,
+                                null,
+                                "Bearer");
+        }
 
-    public AuthenticatedUserResponse getAuthenticatedUser(
-            String email) {
+        public AuthenticatedUserResponse getAuthenticatedUser(
+                        String email) {
 
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow();
+                User user = userRepository.findByEmailIgnoreCase(email)
+                                .orElseThrow();
 
-        return new AuthenticatedUserResponse(
-                user.getId(),
-                user.getName(),
-                user.getEmail(),
-                user.getRoles()
-                        .stream()
-                        .map(role -> role.getName().name())
-                        .collect(Collectors.toSet()));
-    }
+                return new AuthenticatedUserResponse(
+                                user.getId(),
+                                user.getName(),
+                                user.getEmail(),
+                                user.getRoles()
+                                                .stream()
+                                                .map(role -> role.getName().name())
+                                                .collect(Collectors.toSet()));
+        }
 }
