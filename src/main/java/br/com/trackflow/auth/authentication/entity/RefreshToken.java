@@ -49,4 +49,21 @@ public class RefreshToken {
 
     @Column(name = "replaced_by_hash", length = 64)
     private String replacedByHash;
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public void setTokenHash(String tokenHash) {
+        this.tokenHash = tokenHash;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setExpiresAt(LocalDateTime expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+
 }
