@@ -12,21 +12,21 @@ import org.springframework.data.repository.query.Param;
 import br.com.trackflow.auth.authentication.entity.RefreshToken;
 
 public interface RefreshTokenRepository
-        extends JpaRepository<RefreshToken, Long> {
+                extends JpaRepository<RefreshToken, Long> {
 
-    Optional<RefreshToken> findByTokenHash(String tokenHash);
+        Optional<RefreshToken> findByTokenHash(String tokenHash);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            UPDATE RefreshToken token
-               SET token.revokedAt = :now,
-                   token.replacedByHash = :replacementHash
-             WHERE token.tokenHash = :tokenHash
-               AND token.revokedAt IS NULL
-               AND token.expiresAt > :now
-            """)
-    int revokeIfActive(
-            @Param("tokenHash") String tokenHash,
-            @Param("replacementHash") String replacementHash,
-            @Param("now") LocalDateTime now);
+        @Modifying(flushAutomatically = true)
+        @Query("""
+                        UPDATE RefreshToken token
+                           SET token.revokedAt = :now,
+                               token.replacedByHash = :replacementHash
+                         WHERE token.tokenHash = :tokenHash
+                           AND token.revokedAt IS NULL
+                           AND token.expiresAt > :now
+                        """)
+        int revokeIfActive(
+                        @Param("tokenHash") String tokenHash,
+                        @Param("replacementHash") String replacementHash,
+                        @Param("now") LocalDateTime now);
 }

@@ -1,4 +1,3 @@
-
 package br.com.trackflow.auth.authentication.controller;
 
 import jakarta.validation.Valid;
@@ -13,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import br.com.trackflow.auth.authentication.dto.LoginRequest;
 import br.com.trackflow.auth.authentication.dto.LoginResponse;
+import br.com.trackflow.auth.authentication.dto.RefreshTokenRequest;
 import br.com.trackflow.auth.authentication.service.AuthenticationService;
 import br.com.trackflow.auth.user.dto.AuthenticatedUserResponse;
 
@@ -36,12 +36,21 @@ public class AuthenticationController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(
+            @Valid @RequestBody RefreshTokenRequest request) {
+
+        LoginResponse response = authenticationService.refresh(request);
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/me")
     public ResponseEntity<AuthenticatedUserResponse> me(
             Authentication authentication) {
 
-        AuthenticatedUserResponse response = authenticationService.getAuthenticatedUser(
-                authentication.getName());
+        AuthenticatedUserResponse response = authenticationService
+                .getAuthenticatedUser(authentication.getName());
 
         return ResponseEntity.ok(response);
     }

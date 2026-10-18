@@ -1,10 +1,10 @@
-
 package br.com.trackflow.auth.authentication.service;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -13,37 +13,50 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.com.trackflow.auth.authentication.dto.LoginResponse;
+import br.com.trackflow.auth.authentication.dto.RefreshTokenRequest;
 import br.com.trackflow.auth.authentication.entity.RefreshToken;
 import br.com.trackflow.auth.authentication.exception.InvalidRefreshTokenException;
 import br.com.trackflow.auth.authentication.repository.RefreshTokenRepository;
 import br.com.trackflow.auth.user.entity.User;
+import br.com.trackflow.auth.user.repository.UserRepository;
 
 @Service
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
-    private final long refreshTokenExpiration;
+    private final UserRepository userRepository;
+    private final Duration refreshTokenExpiration;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public RefreshTokenService(
             RefreshTokenRepository refreshTokenRepository,
+            UserRepository userRepository,
             @Value("${jwt.refresh-token-expiration:604800000}") long refreshTokenExpiration) {
 
+        if (refreshTokenExpiration <= 0) {
+            throw new IllegalArgumentException(
+                    "A duração do refresh token deve ser positiva.");
+        }
+
         this.refreshTokenRepository = refreshTokenRepository;
-        this.refreshTokenExpiration = refreshTokenExpiration;
+        this.userRepository = userRepository;
+        this.refreshTokenExpiration = Duration.ofMillis(
+                refreshTokenExpiration);
     }
 
     @Transactional
     public String createRefreshToken(User user) {
-        String rawToken = generateToken();
         LocalDateTime now = LocalDateTime.now();
+
+        String rawToken = generateToken();
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
         refreshToken.setTokenHash(hashToken(rawToken));
         refreshToken.setCreatedAt(now);
         refreshToken.setExpiresAt(
-                now.plusNanos(refreshTokenExpiration * 1_000_000L));
+                now.plus(refreshTokenExpiration));
 
         refreshTokenRepository.save(refreshToken);
 
@@ -68,6 +81,9 @@ public class RefreshTokenService {
             throw new InvalidRefreshTokenException();
         }
 
+        // Capture o ID antes da atualização em lote do repositório.
+        Long userId = current.getUser().getId();
+
         String replacementToken = generateToken();
         String replacementHash = hashToken(replacementToken);
 
@@ -80,16 +96,19 @@ public class RefreshTokenService {
             throw new InvalidRefreshTokenException();
         }
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(InvalidRefreshTokenException::new);
+
         RefreshToken replacement = new RefreshToken();
-        replacement.setUser(current.getUser());
+        replacement.setUser(user);
         replacement.setTokenHash(replacementHash);
         replacement.setCreatedAt(now);
         replacement.setExpiresAt(
-                now.plusNanos(refreshTokenExpiration * 1_000_000L));
+                now.plus(refreshTokenExpiration));
 
         refreshTokenRepository.save(replacement);
 
-        return new RotationResult(current.getUser(), replacementToken);
+        return new RotationResult(user, replacementToken);
     }
 
     private String generateToken() {
@@ -104,17 +123,31 @@ public class RefreshTokenService {
     private String hashToken(String token) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
+
             byte[] hash = digest.digest(
                     token.getBytes(StandardCharsets.UTF_8));
 
             return HexFormat.of().formatHex(hash);
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException(
-                    "Não foi possível calcular o hash do token.",
+                    "Não foi possível calcular o hash do refresh token.",
                     exception);
         }
     }
 
     public record RotationResult(User user, String refreshToken) {
+    }
+
+    public LoginResponse refresh(RefreshTokenRequest request) {
+        RefreshTokenService.RotationResult result = refreshTokenService.rotateRefreshToken(
+                request.refreshToken());
+
+        String accessToken = jwtService.generateAccessToken(
+                result.user().getEmail());
+
+        return new LoginResponse(
+                accessToken,
+                result.refreshToken(),
+                "Bearer");
     }
 }

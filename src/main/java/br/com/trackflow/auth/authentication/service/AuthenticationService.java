@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import br.com.trackflow.auth.authentication.dto.LoginRequest;
 import br.com.trackflow.auth.authentication.dto.LoginResponse;
@@ -19,6 +20,7 @@ public class AuthenticationService {
 
         private final AuthenticationManager authenticationManager;
         private final JwtService jwtService;
+        private final RefreshTokenService refreshTokenService;
         private final UserRepository userRepository;
 
         public LoginResponse login(LoginRequest request) {
@@ -28,16 +30,21 @@ public class AuthenticationService {
                                                 request.email(),
                                                 request.password()));
 
-                String accessToken = jwtService.generateAccessToken(request.email());
+                User user = userRepository.findByEmailIgnoreCase(request.email())
+                                .orElseThrow();
+
+                String accessToken = jwtService.generateAccessToken(user.getEmail());
+
+                String refreshToken = refreshTokenService.createRefreshToken(user);
 
                 return new LoginResponse(
                                 accessToken,
-                                null,
+                                refreshToken,
                                 "Bearer");
         }
 
-        public AuthenticatedUserResponse getAuthenticatedUser(
-                        String email) {
+        @Transactional(readOnly = true)
+        public AuthenticatedUserResponse getAuthenticatedUser(String email) {
 
                 User user = userRepository.findByEmailIgnoreCase(email)
                                 .orElseThrow();
