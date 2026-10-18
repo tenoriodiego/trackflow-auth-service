@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import br.com.trackflow.auth.authentication.dto.LoginRequest;
 import br.com.trackflow.auth.authentication.dto.LoginResponse;
+import br.com.trackflow.auth.authentication.dto.RefreshTokenRequest;
 import br.com.trackflow.auth.user.dto.AuthenticatedUserResponse;
 import br.com.trackflow.auth.user.entity.User;
 import br.com.trackflow.auth.user.repository.UserRepository;
@@ -57,5 +58,19 @@ public class AuthenticationService {
                                                 .stream()
                                                 .map(role -> role.getName().name())
                                                 .collect(Collectors.toSet()));
+        }
+
+        public LoginResponse refresh(RefreshTokenRequest request) {
+
+                RefreshTokenService.RotationResult result = refreshTokenService.rotateRefreshToken(
+                                request.refreshToken());
+
+                String accessToken = jwtService.generateAccessToken(
+                                result.user().getEmail());
+
+                return new LoginResponse(
+                                accessToken,
+                                result.refreshToken(),
+                                "Bearer");
         }
 }
