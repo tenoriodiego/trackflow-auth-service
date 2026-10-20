@@ -11,6 +11,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import br.com.trackflow.auth.authentication.exception.InvalidRefreshTokenException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -79,5 +81,14 @@ public class GlobalExceptionHandler {
                 return buildResponse(
                                 HttpStatus.UNAUTHORIZED,
                                 "E-mail ou senha inválidos.");
+        }
+
+        @ExceptionHandler(InvalidRefreshTokenException.class)
+        public ResponseEntity<Map<String, Object>> handleInvalidRefreshToken(
+                        InvalidRefreshTokenException exception) {
+
+                return buildResponse(
+                                HttpStatus.UNAUTHORIZED,
+                                exception.getMessage());
         }
 }
