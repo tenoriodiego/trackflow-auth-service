@@ -17,7 +17,8 @@ public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-        public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        public SecurityConfig(
+                        JwtAuthenticationFilter jwtAuthenticationFilter) {
                 this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         }
 
@@ -35,13 +36,15 @@ public class SecurityConfig {
                                                 .requestMatchers(
                                                                 "/api/users",
                                                                 "/api/auth/login",
+                                                                "/api/auth/refresh",
                                                                 "/swagger-ui/**",
                                                                 "/v3/api-docs/**")
                                                 .permitAll()
                                                 .anyRequest().authenticated())
 
                                 .exceptionHandling(exception -> exception
-                                                .authenticationEntryPoint((request, response, authException) -> {
+                                                .authenticationEntryPoint((request, response,
+                                                                authException) -> {
                                                         response.sendError(
                                                                         HttpServletResponse.SC_UNAUTHORIZED,
                                                                         "Unauthorized");
@@ -58,7 +61,6 @@ public class SecurityConfig {
         public AuthenticationManager authenticationManager(
                         AuthenticationConfiguration authenticationConfiguration)
                         throws Exception {
-
                 return authenticationConfiguration.getAuthenticationManager();
         }
 }
