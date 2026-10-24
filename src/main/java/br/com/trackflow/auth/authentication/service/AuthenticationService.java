@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import br.com.trackflow.auth.authentication.dto.LoginRequest;
 import br.com.trackflow.auth.authentication.dto.LoginResponse;
 import br.com.trackflow.auth.authentication.dto.RefreshTokenRequest;
+import br.com.trackflow.auth.shared.exception.UserNotFoundException;
 import br.com.trackflow.auth.user.dto.AuthenticatedUserResponse;
 import br.com.trackflow.auth.user.entity.User;
 import br.com.trackflow.auth.user.repository.UserRepository;
@@ -25,45 +26,39 @@ public class AuthenticationService {
         private final UserRepository userRepository;
 
         public LoginResponse login(LoginRequest request) {
-
                 authenticationManager.authenticate(
                                 new UsernamePasswordAuthenticationToken(
                                                 request.email(),
                                                 request.password()));
 
                 User user = userRepository.findByEmailIgnoreCase(request.email())
-                                .orElseThrow();
+                                .orElseThrow(() -> new UserNotFoundException(
+                                                "Usuário não encontrado."));
 
                 String accessToken = jwtService.generateAccessToken(user.getEmail());
-
                 String refreshToken = refreshTokenService.createRefreshToken(user);
 
-                return new LoginResponse(
-                                accessToken,
-                                refreshToken,
-                                "Bearer");
+                return new LoginResponse(accessToken, refreshToken, "Bearer");
         }
 
         @Transactional(readOnly = true)
         public AuthenticatedUserResponse getAuthenticatedUser(String email) {
-
                 User user = userRepository.findByEmailIgnoreCase(email)
-                                .orElseThrow();
+                                .orElseThrow(() -> new UserNotFoundException(
+                                                "Usuário não encontrado."));
 
                 return new AuthenticatedUserResponse(
                                 user.getId(),
                                 user.getName(),
                                 user.getEmail(),
-                                user.getRoles()
-                                                .stream()
+                                user.getRoles().stream()
                                                 .map(role -> role.getName().name())
                                                 .collect(Collectors.toSet()));
         }
 
         public LoginResponse refresh(RefreshTokenRequest request) {
-
-                RefreshTokenService.RotationResult result = refreshTokenService.rotateRefreshToken(
-                                request.refreshToken());
+                RefreshTokenService.RotationResult result = refreshTokenService
+                                .rotateRefreshToken(request.refreshToken());
 
                 String accessToken = jwtService.generateAccessToken(
                                 result.user().getEmail());

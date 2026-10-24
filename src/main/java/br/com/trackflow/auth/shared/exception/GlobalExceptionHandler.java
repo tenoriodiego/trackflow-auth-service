@@ -91,4 +91,14 @@ public class GlobalExceptionHandler {
                                 HttpStatus.UNAUTHORIZED,
                                 exception.getMessage());
         }
+
+        @ExceptionHandler(UserNotFoundException.class)
+        public ResponseEntity<Map<String, Object>> handleUserNotFound(
+                        UserNotFoundException exception) {
+
+                return buildResponse(
+                                HttpStatus.NOT_FOUND,
+                                exception.getMessage());
+        }
+
 }
