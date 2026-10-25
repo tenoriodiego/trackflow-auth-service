@@ -1,8 +1,10 @@
+
 package br.com.trackflow.auth.authentication.security;
 
 import java.io.IOException;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -15,8 +17,6 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -57,15 +57,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String username = jwtService.extractUsername(token);
 
-        UserDetails userDetails;
+        final UserDetails userDetails;
 
         try {
             userDetails = userDetailsService.loadUserByUsername(username);
-        } catch (UsernameNotFoundException exception) {
+        } catch (AuthenticationException exception) {
             SecurityContextHolder.clearContext();
             filterChain.doFilter(request, response);
             return;
         }
+
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                 userDetails,
                 null,

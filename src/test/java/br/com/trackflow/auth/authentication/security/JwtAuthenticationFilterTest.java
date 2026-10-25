@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
@@ -205,4 +206,32 @@ class JwtAuthenticationFilterTest {
                 verify(userDetailsService).loadUserByUsername(email);
                 verify(filterChain).doFilter(request, response);
         }
+
+        @Test
+        void shouldContinueFilterChainWhenUserIsDisabled()
+                        throws ServletException, IOException {
+
+                String token = "valid-jwt-token";
+                String email = "disabled-user@trackflow.com";
+
+                when(jwtService.isTokenValid(token)).thenReturn(true);
+                when(jwtService.extractUsername(token)).thenReturn(email);
+
+                when(userDetailsService.loadUserByUsername(email))
+                                .thenThrow(new DisabledException("Usuário desabilitado."));
+
+                MockHttpServletRequest request = new MockHttpServletRequest();
+                request.addHeader("Authorization", "Bearer " + token);
+
+                MockHttpServletResponse response = new MockHttpServletResponse();
+
+                jwtAuthenticationFilter.doFilter(request, response, filterChain);
+
+                assertThat(SecurityContextHolder.getContext().getAuthentication())
+                                .isNull();
+
+                verify(userDetailsService).loadUserByUsername(email);
+                verify(filterChain).doFilter(request, response);
+        }
+
 }
