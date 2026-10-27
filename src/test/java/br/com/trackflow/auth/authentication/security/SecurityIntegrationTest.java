@@ -1,4 +1,3 @@
-
 package br.com.trackflow.auth.authentication.security;
 
 import java.util.Set;
@@ -15,14 +14,14 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import br.com.trackflow.auth.authentication.service.AuthenticationService;
 import br.com.trackflow.auth.authentication.service.JwtService;
 import br.com.trackflow.auth.user.dto.AuthenticatedUserResponse;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -46,10 +45,8 @@ class SecurityIntegrationTest {
         void shouldReturnUnauthorizedWhenAccessingProtectedEndpointWithoutToken()
                         throws Exception {
 
-                mockMvc.perform(
-                                get("/api/auth/me")
-                                                .contentType(MediaType.APPLICATION_JSON))
-                                .andDo(print())
+                mockMvc.perform(get("/api/auth/me")
+                                .contentType(MediaType.APPLICATION_JSON))
                                 .andExpect(status().isUnauthorized());
         }
 
@@ -60,11 +57,9 @@ class SecurityIntegrationTest {
                 when(jwtService.isTokenValid("invalid-token"))
                                 .thenReturn(false);
 
-                mockMvc.perform(
-                                get("/api/auth/me")
-                                                .header("Authorization", "Bearer invalid-token")
-                                                .contentType(MediaType.APPLICATION_JSON))
-                                .andDo(print())
+                mockMvc.perform(get("/api/auth/me")
+                                .header("Authorization", "Bearer invalid-token")
+                                .contentType(MediaType.APPLICATION_JSON))
                                 .andExpect(status().isUnauthorized());
         }
 
@@ -89,18 +84,19 @@ class SecurityIntegrationTest {
                                 .thenReturn(userDetails);
 
                 when(authenticationService.getAuthenticatedUser(email))
-                                .thenReturn(
-                                                new AuthenticatedUserResponse(
-                                                                1L,
-                                                                "José Diego",
-                                                                email,
-                                                                Set.of("ROLE_CUSTOMER")));
+                                .thenReturn(new AuthenticatedUserResponse(
+                                                1L,
+                                                "José Diego",
+                                                email,
+                                                Set.of("ROLE_CUSTOMER")));
 
-                mockMvc.perform(
-                                get("/api/auth/me")
-                                                .header("Authorization", "Bearer " + token)
-                                                .contentType(MediaType.APPLICATION_JSON))
-                                .andDo(print())
-                                .andExpect(status().isOk());
+                mockMvc.perform(get("/api/auth/me")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.id").value(1))
+                                .andExpect(jsonPath("$.name").value("José Diego"))
+                                .andExpect(jsonPath("$.email").value(email))
+                                .andExpect(jsonPath("$.roles[0]").value("ROLE_CUSTOMER"));
         }
 }
