@@ -1,409 +1,311 @@
-# 🧪 Testing — TrackFlow Auth Service
+# 🔐 TrackFlow Auth Service
 
-Este documento descreve a estratégia de testes utilizada no **TrackFlow Auth Service**, incluindo os testes implementados, ferramentas utilizadas e instruções para execução da suíte.
+Microsserviço de autenticação e gerenciamento de usuários do **TrackFlow**, projeto de portfólio desenvolvido com Java e Spring Boot.
 
-> 🚧 **Status:** Em desenvolvimento. A estratégia de testes será expandida conforme novas funcionalidades forem implementadas.
+O serviço oferece cadastro de usuários, autenticação, emissão e renovação de tokens JWT e consulta dos dados do usuário autenticado.
 
----
+> **Status:** em desenvolvimento. A implementação atual inclui cadastro, autenticação JWT, refresh tokens, documentação OpenAPI e testes automatizados. Consulte os endpoints e instruções abaixo para executar a versão atual.
 
-## 1. 🎯 Objetivo
+## 📌 Sobre o TrackFlow
 
-Os testes têm como objetivo garantir o comportamento esperado das principais regras de negócio do serviço de autenticação, principalmente relacionadas ao cadastro de usuários.
+O TrackFlow é um projeto de portfólio voltado à demonstração prática de desenvolvimento backend Java, com evolução incremental para uma arquitetura baseada em microsserviços.
 
-Atualmente, o foco está nos testes unitários da camada de serviço.
+Tecnologias e conceitos previstos no ecossistema incluem APIs REST, Spring Boot, Spring Security, PostgreSQL, Flyway, testes automatizados, mensageria, processamento em lote, cloud e CI/CD. Nem todos esses recursos fazem parte deste microsserviço neste momento.
 
-### Escopo atual
+## 🛠️ Tecnologias
 
-- Testes unitários do `UserService`
-- Validação das regras de cadastro
-- Tratamento de exceções de negócio
-- Validação da criptografia de senha
-- Normalização de e-mail
-- Atribuição da role padrão
-- Verificação das interações com repositories e `PasswordEncoder`
+- Java 21
+- Spring Boot 4.1.1
+- Spring Web MVC
+- Spring Security
+- Spring Data JPA / Hibernate
+- Bean Validation
+- PostgreSQL
+- Flyway
+- BCrypt para hash de senhas
+- JWT com JJWT
+- Springdoc OpenAPI / Swagger UI
+- JUnit 5, Mockito e Spring Boot Test
+- Testcontainers para testes com PostgreSQL, quando habilitado na configuração de testes
+- Maven
 
----
+## 🏗️ Organização do código
 
-# 2. 🛠️ Ferramentas utilizadas
-
-### JUnit 5
-
-Framework utilizado para criação e execução dos testes automatizados.
-
-### Mockito
-
-Utilizado para criar mocks das dependências do `UserService`, permitindo testar a lógica de negócio de forma isolada.
-
-### AssertJ
-
-Utilizado para realizar as asserções dos resultados dos testes de maneira mais legível.
-
----
-
-# 3. 🧩 Estratégia de testes
-
-Os testes do `UserService` seguem uma abordagem de testes unitários, isolando a classe de suas dependências externas.
-
-As principais dependências são simuladas utilizando Mockito:
+O projeto organiza o código por funcionalidade/domínio, separando autenticação, usuários, roles e componentes compartilhados.
 
 ```text
-UserService
-    │
-    ├── UserRepository       → Mock
-    ├── RoleRepository       → Mock
-    └── PasswordEncoder      → Mock
+br.com.trackflow.auth
+├── authentication
+│   ├── controller
+│   ├── dto
+│   ├── security
+│   └── service
+├── role
+│   ├── entity
+│   └── repository
+├── shared
+│   ├── config
+│   └── exception
+└── user
+    ├── controller
+    ├── dto
+    ├── entity
+    ├── repository
+    └── service
 ```
 
-Dessa forma, os testes concentram-se exclusivamente nas regras implementadas no serviço.
+A estrutura acima resume os principais pacotes; classes adicionais podem existir conforme a implementação evolui.
 
----
+## 🔐 Funcionalidades
 
-# 4. ⚙️ UserServiceTest
+- Cadastro de usuários com validação de entrada
+- Normalização do e-mail para letras minúsculas
+- Verificação de e-mail duplicado
+- Hash de senha com BCrypt
+- Atribuição da role padrão `ROLE_CUSTOMER`
+- Login com emissão de access token JWT e refresh token
+- Renovação de tokens por refresh token
+- Endpoint protegido para consultar o usuário autenticado
+- Proteção de endpoints com Spring Security e filtro JWT
+- Tratamento centralizado de exceções
+- Documentação OpenAPI / Swagger UI
 
-Arquivo:
+## 👤 Usuários e roles
 
-```text
-src/test/java/br/com/trackflow/auth/user/service/UserServiceTest.java
-```
+O cadastro inclui nome, e-mail e senha. A senha não deve ser retornada nas respostas da API.
 
-Atualmente foram implementados **6 cenários de teste**.
+Roles previstas no serviço:
 
----
+- `ROLE_ADMIN`
+- `ROLE_OPERATOR`
+- `ROLE_CUSTOMER`
 
-## 4.1 Cadastro de usuário
+Novos usuários recebem `ROLE_CUSTOMER` por padrão.
 
-### `shouldRegisterUserSuccessfully`
+## 🌐 Endpoints
 
-Valida o fluxo principal de cadastro de um usuário.
+| Método | Endpoint | Descrição | Acesso |
+|---|---|---|---|
+| `POST` | `/api/users` | Cadastrar usuário | Público |
+| `POST` | `/api/auth/login` | Autenticar e obter tokens | Público |
+| `POST` | `/api/auth/refresh` | Renovar tokens | Público |
+| `GET` | `/api/auth/me` | Consultar usuário autenticado | JWT obrigatório |
 
-São verificados:
-
-- Cadastro com dados válidos
-- Normalização do e-mail
-- Busca da `ROLE_CUSTOMER`
-- Criptografia da senha
-- Persistência do usuário
-- Retorno correto do `UserResponse`
-
----
-
-## 4.2 E-mail já cadastrado
-
-### `shouldThrowExceptionWhenEmailAlreadyExists`
-
-Valida o comportamento quando já existe um usuário cadastrado com o e-mail informado.
-
-Esperado:
-
-```text
-EmailAlreadyExistsException
-```
-
-Também é verificado que o processo é interrompido antes de:
-
-- Buscar a role
-- Criptografar a senha
-- Salvar o usuário
-
----
-
-## 4.3 Role padrão inexistente
-
-### `shouldThrowExceptionWhenCustomerRoleDoesNotExist`
-
-Valida o comportamento quando a `ROLE_CUSTOMER` não é encontrada no banco.
-
-Esperado:
-
-```text
-RoleNotFoundException
-```
-
-Também é verificado que o usuário não é persistido quando a role necessária não existe.
-
----
-
-## 4.4 Criptografia da senha
-
-### `shouldEncodePasswordBeforeSaving`
-
-Valida se a senha informada pelo usuário é enviada ao `PasswordEncoder` antes da persistência.
-
-Exemplo:
-
-```text
-Senha informada
-      ↓
-PasswordEncoder
-      ↓
-Senha criptografada
-      ↓
-UserRepository.save()
-```
-
-O teste garante que a senha armazenada no objeto `User` é a senha codificada e não a senha original.
-
----
-
-## 4.5 Normalização do e-mail
-
-### `shouldNormalizeEmailBeforeSaving`
-
-Valida a normalização do endereço de e-mail antes da consulta e persistência.
-
-Exemplo:
-
-```text
-  DIEGO@TRACKFLOW.COM
-          ↓
-diego@trackflow.com
-```
-
-O teste verifica que o e-mail normalizado é utilizado durante o fluxo de cadastro.
-
----
-
-## 4.6 Atribuição da role padrão
-
-### `shouldAssignCustomerRoleToNewUser`
-
-Valida se novos usuários recebem automaticamente:
-
-```text
-ROLE_CUSTOMER
-```
-
-Também é verificado que a role atribuída ao usuário corresponde à role retornada pelo `RoleRepository`.
-
-## 4.7 UserControllerTest
-
-Arquivo:
-
-`src/test/java/br/com/trackflow/auth/user/controller/UserControllerTest.java`
-
-Atualmente foram implementados 3 cenários de teste.
-
-### 4.7.1 Cadastro de usuário
-
-`shouldRegisterUserSuccessfully`
-
-Valida o cadastro de um usuário através do endpoint:
+### Cadastrar usuário
 
 `POST /api/users`
 
-Resultado esperado:
+Exemplo de requisição:
 
-- HTTP `201 Created`
-- Retorno dos dados do usuário
-- Chamada do `UserService`
+```json
+{
+  "name": "José Diego",
+  "email": "diego@trackflow.com",
+  "password": "SenhaForte123"
+}
+```
 
-### 4.7.2 Requisição inválida
+Resposta esperada: `201 Created`.
 
-`shouldReturnBadRequestWhenRequestIsInvalid`
+```json
+{
+  "id": 1,
+  "name": "José Diego",
+  "email": "diego@trackflow.com",
+  "enabled": true
+}
+```
 
-Valida o comportamento quando os dados enviados não atendem às validações do `RegisterRequest`.
+Os valores acima são ilustrativos; o identificador e os dados retornados dependem da execução.
 
-Resultado esperado:
+### Login
 
-- HTTP `400 Bad Request`
-- Mensagens de validação retornadas
-- `UserService` não é chamado
+`POST /api/auth/login`
 
-### 4.7.3 E-mail já cadastrado
+```json
+{
+  "email": "diego@trackflow.com",
+  "password": "SenhaForte123"
+}
+```
 
-`shouldReturnConflictWhenEmailAlreadyExists`
+O login retorna um access token, um refresh token e o tipo de token. Use o access token nas rotas protegidas:
 
-Simula uma tentativa de cadastro utilizando um e-mail já existente.
+```http
+Authorization: Bearer <access_token>
+```
 
-Resultado esperado:
+### Renovar tokens
 
-- HTTP `409 Conflict`
-- Mensagem de erro retornada
-- `UserService` é chamado
+`POST /api/auth/refresh`
 
----
+```json
+{
+  "refreshToken": "<refresh_token>"
+}
+```
 
-# 5. 📊 Cenários testados
+Envie um refresh token válido para solicitar um novo conjunto de tokens. Tokens inválidos ou expirados devem ser rejeitados.
 
-| Cenário | Resultado esperado |
-|---|---|
-| Cadastro com dados válidos | Usuário criado |
-| E-mail já cadastrado | `EmailAlreadyExistsException` |
-| `ROLE_CUSTOMER` inexistente | `RoleNotFoundException` |
-| Criptografia da senha | Senha codificada antes do save |
-| E-mail em formato diferente | E-mail normalizado |
-| Cadastro de novo usuário | `ROLE_CUSTOMER` atribuída |
+### Consultar usuário autenticado
 
----
+`GET /api/auth/me`
 
-# 6. 🧱 Padrão utilizado nos testes
+Requer o cabeçalho:
 
-Os testes seguem, sempre que possível, a estrutura:
+```http
+Authorization: Bearer <access_token>
+```
+
+Retorna os dados do usuário associado ao token, incluindo suas roles.
+
+## ⚠️ Validações e erros
+
+O cadastro valida campos obrigatórios, formato do e-mail e limites definidos no DTO de registro. O e-mail é normalizado para lowercase e deve ser único. A senha deve atender às regras de tamanho e é armazenada usando BCrypt.
+
+Principais códigos HTTP utilizados:
+
+- `201 Created`: usuário cadastrado.
+- `200 OK`: operação de autenticação bem-sucedida.
+- `400 Bad Request`: dados de entrada inválidos.
+- `401 Unauthorized`: credenciais inválidas, token ausente ou token inválido/expirado em endpoint protegido.
+- `409 Conflict`: e-mail já cadastrado.
+
+As respostas específicas dependem do tipo de erro tratado pela aplicação.
+
+## 🗄️ Banco de dados e migrations
+
+O serviço utiliza PostgreSQL e Flyway para controlar a evolução do schema. O Hibernate deve validar o schema existente, em vez de criá-lo automaticamente.
+
+As migrations ficam em:
 
 ```text
-Arrange
-   ↓
-Act
-   ↓
-Assert
+src/main/resources/db/migration
 ```
 
-### Arrange
+Antes de executar a aplicação, crie um banco PostgreSQL para o serviço, por exemplo `trackflow_auth`, e configure o acesso no arquivo de ambiente.
 
-Configuração dos dados e comportamentos dos mocks.
+## ⚙️ Configuração local
 
-### Act
+Use Java 21 e o Maven Wrapper incluído no repositório. Configure as variáveis de ambiente necessárias para o banco de dados e para os tokens. Exemplo ilustrativo:
 
-Execução do método que está sendo testado.
-
-### Assert
-
-Validação do resultado obtido e das interações realizadas.
-
-Também são utilizadas verificações do Mockito, como:
-
-```java
-verify(...)
+```properties
+DB_URL=jdbc:postgresql://localhost:5432/trackflow_auth
+DB_USERNAME=postgres
+DB_PASSWORD=altere_esta_senha
+DB_DRIVER=org.postgresql.Driver
+SERVER_PORT=8081
+JWT_SECRET=substitua_por_um_segredo_forte
+JWT_EXPIRATION=3600
+JWT_REFRESH_TOKEN_TIME=604800
 ```
 
-e:
+> **Segurança:** não versione o arquivo `.env` nem segredos reais. Use um segredo JWT forte e apropriado ao algoritmo configurado. Em ambientes compartilhados ou de produção, injete segredos por variáveis de ambiente ou pelo gerenciador de segredos da plataforma.
 
-```java
-verify(..., never())
+Confirme no `application.properties`/configuração da aplicação o local em que o projeto lê o arquivo `.env` e o valor de porta efetivamente configurado. O exemplo acima considera a configuração documentada do projeto.
+
+## 🚀 Como executar
+
+### 1. Clonar o repositório
+
+```bash
+git clone <URL_DO_REPOSITORIO>
+cd trackflow-auth-service
 ```
 
-para garantir que determinadas dependências sejam ou não acionadas durante cada cenário.
+Substitua `<URL_DO_REPOSITORIO>` pela URL real do repositório.
 
----
+### 2. Criar o banco
 
-# 7. ▶️ Executando os testes
+No PostgreSQL, crie o banco configurado para o serviço, por exemplo:
 
-### Executar todos os testes
+```sql
+CREATE DATABASE trackflow_auth;
+```
+
+### 3. Configurar o ambiente
+
+Crie o arquivo `.env` no local esperado pela configuração da aplicação e informe as variáveis necessárias. Não envie esse arquivo ao Git.
+
+### 4. Executar a aplicação
 
 Windows:
 
-```bash
-mvnw.cmd test
+```bat
+mvnw.cmd spring-boot:run
 ```
 
 Linux/macOS:
 
 ```bash
-./mvnw test
+./mvnw spring-boot:run
 ```
 
----
+A porta deve corresponder à variável `SERVER_PORT` ou à configuração efetiva da aplicação.
 
-### Executar somente o `UserServiceTest`
+## 📚 Swagger / OpenAPI
+
+Com a aplicação em execução, verifique:
+
+- Swagger UI: `http://localhost:8081/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8081/v3/api-docs`
+
+Se a porta configurada for diferente de `8081`, ajuste a URL. A autenticação de endpoints protegidos pode ser testada no Swagger usando o esquema Bearer JWT, após obter um access token pelo login.
+
+## 🧪 Testes
+
+Executar todos os testes:
 
 Windows:
 
+```bat
+mvnw.cmd clean test
+```
+
+Linux/macOS:
+
 ```bash
+./mvnw clean test
+```
+
+Executar uma classe específica:
+
+```bat
 mvnw.cmd -Dtest=UserServiceTest test
 ```
 
-Linux/macOS:
+Mais detalhes sobre estratégia, classes e cenários estão em [`TESTING.md`](TESTING.md).
 
-```bash
-./mvnw -Dtest=UserServiceTest test
-```
+Testes que utilizam Testcontainers podem exigir Docker disponível e em execução, conforme a configuração usada pela suíte.
 
----
+## 🗺️ Roadmap
 
-# 8. 📈 Status atual
+- [x] Cadastro de usuários
+- [x] Persistência com PostgreSQL e migrations Flyway
+- [x] Hash de senha com BCrypt
+- [x] Tratamento centralizado de exceções
+- [x] Autenticação e tokens JWT
+- [x] Refresh token
+- [x] Endpoint de usuário autenticado
+- [x] Testes automatizados das camadas principais
+- [x] Documentação OpenAPI / Swagger
+- [ ] Revisão final da documentação e configuração para execução limpa
+- [ ] Avaliar testes de repositório e integração adicionais conforme necessidade
+- [ ] Configurar análise de cobertura com JaCoCo
+- [ ] Preparar deploy
+- [ ] Docker e CI/CD em etapa posterior
 
-### UserServiceTest
+## 🧩 Ecossistema TrackFlow
 
-├── ✅ Cadastro de usuário
-├── ✅ E-mail duplicado
-├── ✅ Role inexistente
-├── ✅ Criptografia da senha
-├── ✅ Normalização do e-mail
-└── ✅ Atribuição da ROLE_CUSTOMER
+O Auth Service será um dos serviços do ecossistema TrackFlow. Outros microsserviços, mensageria, processamento em lote e integrações cloud serão adicionados gradualmente, em repositórios ou módulos próprios conforme a arquitetura evoluir.
 
-**6 testes, 6 aprovados, 0 falhas.**
+## 👨‍💻 Autor
 
-### UserControllerTest
+**José Diego Tenório** — Desenvolvedor Backend Java
 
-├── ✅ Cadastro de usuário
-├── ✅ Requisição inválida
-└── ✅ E-mail já cadastrado
+- GitHub: [tenoriodiego](https://github.com/tenoriodiego)
+- LinkedIn: [tjdiegoss](https://linkedin.com/in/tjdiegoss)
 
-**3 testes, 3 aprovados, 0 falhas.**
+## 📄 Licença
 
-### Total
-
-**9 testes, 9 aprovados, 0 falhas.**
-
----
-
-
-# 9. 🗺️ Roadmap de testes
-
-- [x] UserServiceTest
-- [x] UserControllerTest
-- [x] CustomUserDetailsServiceTest
-- [x] AuthenticationManagerTest
-- [x] AuthenticationServiceTest
-- [x] JwtServiceTest
-- [x] AuthenticationControllerTest
-- [x] JwtAuthenticationFilterTest
-- [ ] Security Integration Tests
-- [ ] Repository Tests
-- [ ] Integration Tests
-- [ ] Test Coverage / JaCoCo
-
-### Próximas etapas
-
-```text
-
-[ ] AuthenticationServiceTest
-    [ ] Login
-    [ ] Credenciais inválidas
-    [ ] Usuário desabilitado
-
-[ ] JwtServiceTest
-    [ ] Geração de token
-    [ ] Validação de token
-    [ ] Expiração
-    [ ] Claims
-
-[ ] Security Tests
-    [ ] JWT Filter
-    [ ] Autorização por roles
-    [ ] Endpoints protegidos
-
-[ ] Repository Tests
-    [ ] Consultas personalizadas
-    [ ] Persistência
-    [ ] Constraints
-
-[ ] Integration Tests
-    [ ] Testcontainers
-    [ ] PostgreSQL
-
-[ ] Test Coverage
-    [ ] JaCoCo
-```
-
-O roadmap será atualizado conforme as funcionalidades forem implementadas no projeto.
-
----
-
-# 10. 📌 Princípios
-
-A estratégia de testes do TrackFlow busca priorizar:
-
-- Testes legíveis
-- Testes determinísticos
-- Isolamento das regras de negócio
-- Cobertura de cenários de sucesso e erro
-- Validação do comportamento, não apenas da implementação
-- Feedback rápido durante o desenvolvimento
-- Testes unitários do `UserService`
-- Testes do `UserController` com MockMvc
-- Validação das requisições HTTP
-- Validação dos códigos de status HTTP
-- Tratamento de exceções no controller
-
-A suíte de testes será evoluída junto com o projeto, evitando a criação de testes artificiais apenas para aumentar métricas de cobertura.
+Projeto desenvolvido para estudo, portfólio e demonstração de conhecimentos em desenvolvimento backend Java. Uma licença específica poderá ser adicionada ao repositório quando definida.

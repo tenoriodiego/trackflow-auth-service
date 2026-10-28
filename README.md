@@ -1,218 +1,111 @@
 # 🔐 TrackFlow Auth Service
 
-Serviço de autenticação e gerenciamento de usuários do **TrackFlow**, uma aplicação distribuída desenvolvida com Java e Spring Boot.
+Microsserviço de autenticação e gerenciamento de usuários do **TrackFlow**, projeto de portfólio desenvolvido com Java e Spring Boot.
 
-O `trackflow-auth-service` é responsável pelo cadastro de usuários, gerenciamento de roles e, nas próximas etapas, autenticação e emissão de tokens JWT para os demais serviços do ecossistema TrackFlow.
+O serviço oferece cadastro de usuários, autenticação, emissão e renovação de tokens JWT e consulta dos dados do usuário autenticado.
 
-> 🚧 **Status:** Em desenvolvimento
-
----
+> **Status:** em desenvolvimento. A implementação atual inclui cadastro, autenticação JWT, refresh tokens, documentação OpenAPI e testes automatizados. Consulte os endpoints e instruções abaixo para executar a versão atual.
 
 ## 📌 Sobre o TrackFlow
 
-O **TrackFlow** é um projeto de portfólio desenvolvido com o objetivo de demonstrar conceitos e práticas utilizados no desenvolvimento de aplicações backend Java modernas, incluindo:
+O TrackFlow é um projeto de portfólio voltado à demonstração prática de desenvolvimento backend Java, com evolução incremental para uma arquitetura baseada em microsserviços.
 
-* Arquitetura baseada em microsserviços
-* APIs REST
-* Spring Boot
-* Spring Security
-* JWT
-* PostgreSQL
-* Mensageria
-* Testes automatizados
-* Spring Batch
-* Docker
-* CI/CD
-* Integração com serviços de cloud
+Tecnologias e conceitos previstos no ecossistema incluem APIs REST, Spring Boot, Spring Security, PostgreSQL, Flyway, testes automatizados, mensageria, processamento em lote, cloud e CI/CD. Nem todos esses recursos fazem parte deste microsserviço neste momento.
 
-O projeto será desenvolvido de forma incremental, com cada microsserviço possuindo responsabilidade e ciclo de desenvolvimento próprios.
+## 🛠️ Tecnologias
 
----
+- Java 21
+- Spring Boot 4.1.1
+- Spring Web MVC
+- Spring Security
+- Spring Data JPA / Hibernate
+- Bean Validation
+- PostgreSQL
+- Flyway
+- BCrypt para hash de senhas
+- JWT com JJWT
+- Springdoc OpenAPI / Swagger UI
+- JUnit 5, Mockito e Spring Boot Test
+- Testcontainers para testes com PostgreSQL, quando habilitado na configuração de testes
+- Maven
 
-# 🔐 TrackFlow Auth Service
+## 🏗️ Organização do código
 
-O `trackflow-auth-service` é o microsserviço responsável pela autenticação e identidade dos usuários do TrackFlow.
-
-### Responsabilidades
-
-* Cadastro de usuários
-* Validação dos dados de cadastro
-* Criptografia de senhas
-* Gerenciamento de roles
-* Autenticação de usuários
-* Emissão de JWT
-* Validação de tokens
-* Controle de acesso baseado em roles
-
-> Algumas dessas funcionalidades ainda estão em desenvolvimento.
-
----
-
-## 🛠️ Tecnologias utilizadas
-
-### Backend
-
-* Java 21
-* Spring Boot
-* Spring Web
-* Spring Security
-* Spring Data JPA
-* Hibernate
-* Bean Validation
-* Lombok
-
-### Banco de dados
-
-* PostgreSQL
-* Flyway
-
-### Segurança
-
-* Spring Security
-* BCrypt
-* JWT — em implementação
-
-### Testes
-
-* JUnit 5
-* Mockito
-* Spring Boot Test
-
-### Documentação
-
-* Springdoc OpenAPI / Swagger — planejado
-
----
-
-# 🏗️ Arquitetura
-
-O projeto utiliza organização por **feature/domain**, evitando concentrar todas as classes em pacotes globais de Controller, Service e Repository.
+O projeto organiza o código por funcionalidade/domínio, separando autenticação, usuários, roles e componentes compartilhados.
 
 ```text
 br.com.trackflow.auth
-│
 ├── authentication
 │   ├── controller
 │   ├── dto
 │   ├── security
 │   └── service
-│
 ├── role
 │   ├── entity
 │   └── repository
-│
 ├── shared
 │   ├── config
 │   └── exception
-│
-├── user
-│   ├── controller
-│   ├── dto
-│   ├── entity
-│   ├── repository
-│   └── service
-│
-└── TrackflowAuthServiceApplication
+└── user
+    ├── controller
+    ├── dto
+    ├── entity
+    ├── repository
+    └── service
 ```
 
-### Fluxo atual de cadastro
+A estrutura acima resume os principais pacotes; classes adicionais podem existir conforme a implementação evolui.
 
-```text
-Cliente
-   │
-   ▼
-UserController
-   │
-   ▼
-RegisterRequest
-   │
-   ▼
-UserService
-   │
-   ├── Validação do e-mail
-   │
-   ├── Normalização do e-mail
-   │
-   ├── Busca ROLE_CUSTOMER
-   │
-   ├── Criptografia da senha
-   │
-   └── Persistência
-          │
-          ▼
-   UserRepository
-          │
-          ▼
-      PostgreSQL
-```
+## 🔐 Funcionalidades
 
----
+- Cadastro de usuários com validação de entrada
+- Normalização do e-mail para letras minúsculas
+- Verificação de e-mail duplicado
+- Hash de senha com BCrypt
+- Atribuição da role padrão `ROLE_CUSTOMER`
+- Login com emissão de access token JWT e refresh token
+- Renovação de tokens por refresh token
+- Endpoint protegido para consultar o usuário autenticado
+- Proteção de endpoints com Spring Security e filtro JWT
+- Tratamento centralizado de exceções
+- Documentação OpenAPI / Swagger UI
 
-# 👤 Usuários
+## 👤 Usuários e roles
 
-O cadastro de usuários atualmente possui os seguintes campos:
+O cadastro inclui nome, e-mail e senha. A senha não deve ser retornada nas respostas da API.
 
-| Campo       | Descrição                               |
-| ----------- | --------------------------------------- |
-| `id`        | Identificador do usuário                |
-| `name`      | Nome do usuário                         |
-| `email`     | E-mail único                            |
-| `password`  | Senha armazenada de forma criptografada |
-| `enabled`   | Indica se o usuário está habilitado     |
-| `createdAt` | Data de criação                         |
-| `updatedAt` | Data da última atualização              |
+Roles previstas no serviço:
 
-A senha nunca é retornada pela API.
+- `ROLE_ADMIN`
+- `ROLE_OPERATOR`
+- `ROLE_CUSTOMER`
 
----
+Novos usuários recebem `ROLE_CUSTOMER` por padrão.
 
-# 🛡️ Roles
+## 🌐 Endpoints
 
-As roles disponíveis atualmente são:
+| Método | Endpoint | Descrição | Acesso |
+|---|---|---|---|
+| `POST` | `/api/users` | Cadastrar usuário | Público |
+| `POST` | `/api/auth/login` | Autenticar e obter tokens | Público |
+| `POST` | `/api/auth/refresh` | Renovar tokens | Público |
+| `GET` | `/api/auth/me` | Consultar usuário autenticado | JWT obrigatório |
 
-```text
-ROLE_ADMIN
-ROLE_OPERATOR
-ROLE_CUSTOMER
-```
+### Cadastrar usuário
 
-Novos usuários recebem automaticamente:
+`POST /api/users`
 
-```text
-ROLE_CUSTOMER
-```
-
-O gerenciamento de permissões baseado nessas roles será utilizado nas próximas etapas da implementação do Spring Security.
-
----
-
-# 🌐 Endpoints
-
-## Usuários
-
-### Registrar usuário
-
-```http
-POST /api/users
-```
-
-Cria um novo usuário no sistema.
-
-### Request
+Exemplo de requisição:
 
 ```json
 {
   "name": "José Diego",
   "email": "diego@trackflow.com",
-  "password": "12345678"
+  "password": "SenhaForte123"
 }
 ```
 
-### Response
-
-```http
-HTTP/1.1 201 Created
-```
+Resposta esperada: `201 Created`.
 
 ```json
 {
@@ -223,217 +116,122 @@ HTTP/1.1 201 Created
 }
 ```
 
----
+Os valores acima são ilustrativos; o identificador e os dados retornados dependem da execução.
 
-# 🔎 Validações
+### Login
 
-Durante o cadastro:
-
-* O nome é obrigatório.
-* O nome possui limite de 100 caracteres.
-* O e-mail é obrigatório.
-* O e-mail deve possuir formato válido.
-* O e-mail possui limite de 150 caracteres.
-* O e-mail é normalizado para lowercase.
-* O e-mail deve ser único.
-* A senha é obrigatória.
-* A senha deve possuir entre 8 e 100 caracteres.
-* A senha é armazenada utilizando BCrypt.
-* Novos usuários recebem `ROLE_CUSTOMER`.
-
-### Exemplo de e-mail normalizado
-
-```text
-  DIEGO@TRACKFLOW.COM
-```
-
-é armazenado como:
-
-```text
-diego@trackflow.com
-```
-
----
-
-# ⚠️ Tratamento de erros
-
-A aplicação possui um `GlobalExceptionHandler` para tratar erros da API.
-
-### E-mail já cadastrado
-
-```http
-HTTP/1.1 409 Conflict
-```
-
-Exemplo:
+`POST /api/auth/login`
 
 ```json
 {
-  "timestamp": "2026-09-29T21:00:00",
-  "status": 409,
-  "error": "Conflict",
-  "message": "Já existe um usuário cadastrado com o e-mail: diego@trackflow.com"
+  "email": "diego@trackflow.com",
+  "password": "SenhaForte123"
 }
 ```
 
-### Dados inválidos
+O login retorna um access token, um refresh token e o tipo de token. Use o access token nas rotas protegidas:
 
 ```http
-HTTP/1.1 400 Bad Request
+Authorization: Bearer <access_token>
 ```
 
-Exemplo:
+### Renovar tokens
+
+`POST /api/auth/refresh`
 
 ```json
 {
-  "timestamp": "2026-09-29T21:00:00",
-  "status": 400,
-  "error": "Validation error",
-  "messages": {
-    "email": "E-mail inválido",
-    "password": "Senha deve ter entre 8 e 100 caracteres"
-  }
+  "refreshToken": "<refresh_token>"
 }
 ```
 
----
+Envie um refresh token válido para solicitar um novo conjunto de tokens. Tokens inválidos ou expirados devem ser rejeitados.
 
-# 🗄️ Banco de dados
+### Consultar usuário autenticado
 
-O projeto utiliza **PostgreSQL**.
+`GET /api/auth/me`
 
-As alterações do banco são controladas pelo **Flyway**, evitando que a estrutura seja criada ou alterada automaticamente pelo Hibernate.
+Requer o cabeçalho:
 
-Atualmente existem as seguintes tabelas:
-
-```text
-users
-roles
-user_roles
+```http
+Authorization: Bearer <access_token>
 ```
 
-### Relacionamento
+Retorna os dados do usuário associado ao token, incluindo suas roles.
 
-```text
-User
-  │
-  │ N:N
-  ▼
-Role
-```
+## ⚠️ Validações e erros
 
-A tabela intermediária:
+O cadastro valida campos obrigatórios, formato do e-mail e limites definidos no DTO de registro. O e-mail é normalizado para lowercase e deve ser único. A senha deve atender às regras de tamanho e é armazenada usando BCrypt.
 
-```text
-user_roles
-```
+Principais códigos HTTP utilizados:
 
-é responsável pelo relacionamento entre usuários e roles.
+- `201 Created`: usuário cadastrado.
+- `200 OK`: operação de autenticação bem-sucedida.
+- `400 Bad Request`: dados de entrada inválidos.
+- `401 Unauthorized`: credenciais inválidas, token ausente ou token inválido/expirado em endpoint protegido.
+- `409 Conflict`: e-mail já cadastrado.
 
----
+As respostas específicas dependem do tipo de erro tratado pela aplicação.
 
-# 🗃️ Migrations
+## 🗄️ Banco de dados e migrations
 
-As migrations estão localizadas em:
+O serviço utiliza PostgreSQL e Flyway para controlar a evolução do schema. O Hibernate deve validar o schema existente, em vez de criá-lo automaticamente.
+
+As migrations ficam em:
 
 ```text
 src/main/resources/db/migration
 ```
 
-Migration atual:
+Antes de executar a aplicação, crie um banco PostgreSQL para o serviço, por exemplo `trackflow_auth`, e configure o acesso no arquivo de ambiente.
 
-```text
-V1__create_users_and_roles.sql
-```
+## ⚙️ Configuração local
 
-O Hibernate está configurado para validar a estrutura existente:
-
-```properties
-spring.jpa.hibernate.ddl-auto=validate
-```
-
-A criação e evolução do schema são responsabilidades do Flyway.
-
----
-
-# ⚙️ Configuração
-
-As configurações sensíveis são mantidas em um arquivo `.env` local.
-
-Exemplo:
+Use Java 21 e o Maven Wrapper incluído no repositório. Configure as variáveis de ambiente necessárias para o banco de dados e para os tokens. Exemplo ilustrativo:
 
 ```properties
 DB_URL=jdbc:postgresql://localhost:5432/trackflow_auth
 DB_USERNAME=postgres
-DB_PASSWORD=your_password
+DB_PASSWORD=altere_esta_senha
 DB_DRIVER=org.postgresql.Driver
-
 SERVER_PORT=8081
-
-JWT_SECRET=your-jwt-secret
+JWT_SECRET=substitua_por_um_segredo_forte
 JWT_EXPIRATION=3600
 JWT_REFRESH_TOKEN_TIME=604800
 ```
 
-> ⚠️ O arquivo `.env` não deve ser versionado no Git.
+> **Segurança:** não versione o arquivo `.env` nem segredos reais. Use um segredo JWT forte e apropriado ao algoritmo configurado. Em ambientes compartilhados ou de produção, injete segredos por variáveis de ambiente ou pelo gerenciador de segredos da plataforma.
 
-Para disponibilizar um exemplo de configuração sem expor credenciais, será utilizado futuramente:
+Confirme no `application.properties`/configuração da aplicação o local em que o projeto lê o arquivo `.env` e o valor de porta efetivamente configurado. O exemplo acima considera a configuração documentada do projeto.
 
-```text
-.env.example
-```
+## 🚀 Como executar
 
----
-
-# 🚀 Como executar
-
-## 1. Clonar o repositório
+### 1. Clonar o repositório
 
 ```bash
 git clone <URL_DO_REPOSITORIO>
-```
-
-Entre no diretório:
-
-```bash
 cd trackflow-auth-service
 ```
 
----
+Substitua `<URL_DO_REPOSITORIO>` pela URL real do repositório.
 
-## 2. Criar o banco PostgreSQL
+### 2. Criar o banco
 
-Crie um banco chamado:
-
-```text
-trackflow_auth
-```
-
-Exemplo:
+No PostgreSQL, crie o banco configurado para o serviço, por exemplo:
 
 ```sql
 CREATE DATABASE trackflow_auth;
 ```
 
----
+### 3. Configurar o ambiente
 
-## 3. Configurar o `.env`
+Crie o arquivo `.env` no local esperado pela configuração da aplicação e informe as variáveis necessárias. Não envie esse arquivo ao Git.
 
-Crie:
-
-```text
-src/main/resources/.env
-```
-
-Configure as credenciais do PostgreSQL e as demais propriedades necessárias.
-
----
-
-## 4. Executar a aplicação
+### 4. Executar a aplicação
 
 Windows:
 
-```bash
+```bat
 mvnw.cmd spring-boot:run
 ```
 
@@ -443,150 +241,71 @@ Linux/macOS:
 ./mvnw spring-boot:run
 ```
 
-A aplicação será iniciada, por padrão, na porta:
+A porta deve corresponder à variável `SERVER_PORT` ou à configuração efetiva da aplicação.
 
-```text
-8081
-```
+## 📚 Swagger / OpenAPI
 
----
+Com a aplicação em execução, verifique:
 
-# 🧪 Testes
+- Swagger UI: `http://localhost:8081/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8081/v3/api-docs`
 
-O projeto utiliza **JUnit 5 + Mockito** para testes automatizados.
+Se a porta configurada for diferente de `8081`, ajuste a URL. A autenticação de endpoints protegidos pode ser testada no Swagger usando o esquema Bearer JWT, após obter um access token pelo login.
 
-Para executar todos os testes:
+## 🧪 Testes
 
-```bash
-mvnw.cmd test
+Executar todos os testes:
+
+Windows:
+
+```bat
+mvnw.cmd clean test
 ```
 
 Linux/macOS:
 
 ```bash
-./mvnw test
+./mvnw clean test
 ```
 
-Para executar uma classe específica:
+Executar uma classe específica:
 
-```bash
+```bat
 mvnw.cmd -Dtest=UserServiceTest test
 ```
 
-### Cobertura atual
+Mais detalhes sobre estratégia, classes e cenários estão em [`TESTING.md`](TESTING.md).
 
-O `UserService` possui testes para:
+Testes que utilizam Testcontainers podem exigir Docker disponível e em execução, conforme a configuração usada pela suíte.
 
-* Cadastro de usuário
-* E-mail duplicado
-* Role `ROLE_CUSTOMER` inexistente
-* Criptografia da senha
-* Normalização do e-mail
-* Atribuição da role padrão
+## 🗺️ Roadmap
 
----
+- [x] Cadastro de usuários
+- [x] Persistência com PostgreSQL e migrations Flyway
+- [x] Hash de senha com BCrypt
+- [x] Tratamento centralizado de exceções
+- [x] Autenticação e tokens JWT
+- [x] Refresh token
+- [x] Endpoint de usuário autenticado
+- [x] Testes automatizados das camadas principais
+- [x] Documentação OpenAPI / Swagger
+- [ ] Revisão final da documentação e configuração para execução limpa
+- [ ] Avaliar testes de repositório e integração adicionais conforme necessidade
+- [ ] Configurar análise de cobertura com JaCoCo
+- [ ] Preparar deploy
+- [ ] Docker e CI/CD em etapa posterior
 
-# 🔒 Segurança
+## 🧩 Ecossistema TrackFlow
 
-Atualmente o projeto utiliza:
+O Auth Service será um dos serviços do ecossistema TrackFlow. Outros microsserviços, mensageria, processamento em lote e integrações cloud serão adicionados gradualmente, em repositórios ou módulos próprios conforme a arquitetura evoluir.
 
-* Spring Security
-* BCrypt para armazenamento seguro das senhas
-* Configuração stateless
-* Validação de requisições
-* Controle de acesso preparado para roles
+## 👨‍💻 Autor
 
-A autenticação baseada em **JWT** será implementada nas próximas etapas.
+**José Diego Tenório** — Desenvolvedor Backend Java
 
----
+- GitHub: [tenoriodiego](https://github.com/tenoriodiego)
+- LinkedIn: [tjdiegoss](https://linkedin.com/in/tjdiegoss)
 
-# 🗺️ Roadmap
+## 📄 Licença
 
-O desenvolvimento do `trackflow-auth-service` seguirá aproximadamente esta ordem:
-
-```text
-[x] Estrutura inicial do projeto
-[x] Entidades User e Role
-[x] Repositories
-[x] DTOs de cadastro
-[x] Cadastro de usuários
-[x] BCrypt
-[x] PostgreSQL
-[x] Flyway
-[x] Tratamento de exceções
-[x] Testes do UserService
-[ ] Testes do UserController
-[ ] Login
-[ ] AuthenticationService
-[ ] JWT
-[ ] JwtService
-[ ] JwtAuthenticationFilter
-[ ] Refresh Token
-[ ] Autorização baseada em roles
-[ ] Swagger / OpenAPI
-[ ] Testes de integração
-[ ] Docker
-[ ] CI/CD
-```
-
----
-
-# 🧩 Ecossistema TrackFlow
-
-O `trackflow-auth-service` faz parte de uma arquitetura maior baseada em microsserviços.
-
-```text
-                    ┌──────────────────────┐
-                    │    API Gateway       │
-                    └──────────┬───────────┘
-                               │
-             ┌─────────────────┼─────────────────┐
-             │                 │                 │
-             ▼                 ▼                 ▼
-      ┌─────────────┐   ┌─────────────┐   ┌─────────────┐
-      │ Auth Service│   │Order Service│   │  Tracking   │
-      │             │   │             │   │   Service   │
-      └─────────────┘   └─────────────┘   └─────────────┘
-             │                 │                 │
-             ▼                 ▼                 ▼
-        PostgreSQL        PostgreSQL        PostgreSQL
-```
-
-Outros serviços serão adicionados gradualmente ao projeto.
-
----
-
-# 📚 Próximas etapas do TrackFlow
-
-Após finalizar o Auth Service, o desenvolvimento seguirá para os demais microsserviços:
-
-```text
-1. Auth Service
-2. Order Service
-3. Tracking Service
-4. RabbitMQ / Mensageria
-5. Notification Service
-6. Batch Service
-7. AWS
-8. Docker
-9. CI/CD
-```
-
-A arquitetura será evoluída gradualmente conforme novas necessidades forem adicionadas ao sistema.
-
----
-
-# 👨‍💻 Autor
-
-**José Diego Tenório**
-
-Desenvolvedor Backend Java
-
-* GitHub: [github.com/tenoriodiego](https://github.com/tenoriodiego)
-* LinkedIn: [linkedin.com/in/tjdiegoss](https://linkedin.com/in/tjdiegoss)
-
----
-
-# 📄 Licença
-
-Este projeto é desenvolvido para fins de estudo, portfólio e demonstração de conhecimentos em desenvolvimento backend Java.
+Projeto desenvolvido para estudo, portfólio e demonstração de conhecimentos em desenvolvimento backend Java. Uma licença específica poderá ser adicionada ao repositório quando definida.
