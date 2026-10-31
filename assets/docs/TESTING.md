@@ -310,3 +310,4 @@ O Auth Service será um dos serviços do ecossistema TrackFlow. Outros microsser
 
 Projeto desenvolvido para estudo, portfólio e demonstração de conhecimentos em desenvolvimento backend Java. Uma licença específica poderá ser adicionada ao repositório quando definida.
 
+gdfdfg
