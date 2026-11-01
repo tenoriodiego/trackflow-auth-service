@@ -35,3 +35,11 @@ build/
 
 # Environment
 .env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Local application configuration
+application-local.properties
