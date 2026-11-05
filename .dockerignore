@@ -1,0 +1,17 @@
+
+.env
+.env.*
+!.env.example
+
+.git
+.github
+.idea
+.vscode
+
+target
+build
+*.log
+
+HELP.md
+README.md
+TESTING.md
